@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpecScope — CSS Specificity Analyzer &amp; Calculator</title>
+<meta name="description" content="SpecScope is a free css specificity calculator and analyzer: paste your whole stylesheet, rank every selector by specificity, get plain-English token breakdowns, !important and ID-overuse audits, one-click simpler-selector suggestions, and a Markdown report export.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: { specbg:'#0b1020', speccard:'#121830', specedge:'#232b4d', specpri:'#7c6cff', specacc:'#22d3ee' },
+    fontFamily: { disp:['Outfit','ui-sans-serif','system-ui','sans-serif'], mono:['"JetBrains Mono"','ui-monospace','monospace'] }
+  }}
+};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { background:#0b1020; color:#e2e8f0; font-family:'Outfit',ui-sans-serif,system-ui,sans-serif; }
+  .panel { background:linear-gradient(165deg,#121830 0%,#0d1226 100%); border:1px solid #232b4d; }
+  .scorebar { height:6px; border-radius:9999px; background:linear-gradient(90deg,#7c6cff,#22d3ee); }
+  details.faq summary { cursor:pointer; list-style:none; }
+  details.faq summary::-webkit-details-marker { display:none; }
+  details.faq[open] .faq-plus { transform:rotate(45deg); }
+  .faq-plus { transition:transform .2s ease; }
+  .tok { border:1px solid #232b4d; background:#0b1020; }
+  textarea#css-input { color-scheme:dark; }
+  .glow-num { text-shadow:0 0 26px rgba(124,108,255,.5); }
+  ::selection { background:rgba(124,108,255,.4); }
+  .article-body h2 { font-size:1.35rem; font-weight:700; margin:2rem 0 .75rem; color:#fff; }
+  .article-body h3 { font-size:1.1rem; font-weight:600; margin:1.5rem 0 .5rem; color:#c7d2fe; }
+  .article-body p { margin:.75rem 0; line-height:1.75; color:#cbd5e1; }
+  .article-body ul, .article-body ol { margin:.75rem 0 .75rem 1.25rem; color:#cbd5e1; line-height:1.75; }
+  .article-body li { margin:.35rem 0; }
+  .article-body code { font-family:'JetBrains Mono',monospace; font-size:.85em; background:#1a2140; color:#22d3ee; padding:.1em .35em; border-radius:.3em; }
+  .article-body strong { color:#f1f5f9; }
+  @media (max-width:640px){ .stat-num{ font-size:1.3rem; } }
+</style>
+</head>
+<body id="top" class="min-h-screen">
+
+<!-- ================= HEADER ================= -->
+<header class="sticky top-0 z-50 border-b border-specedge/70" style="background:rgba(11,16,32,.94);backdrop-filter:blur(10px)">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2.5">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl" style="background:linear-gradient(135deg,#7c6cff,#22d3ee)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b1020" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg>
+      </span>
+      <span class="font-disp text-xl font-bold tracking-tight">Spec<span style="color:#22d3ee">Scope</span></span>
+    </a>
+    <nav class="flex items-center gap-5 text-sm">
+      <a href="#top" class="text-slate-300 hover:text-specacc transition">Home</a>
+      <a href="https://fixoraa.tech" class="text-slate-300 hover:text-specacc transition">More Tools</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<section class="mx-auto max-w-6xl px-4 sm:px-6 pt-10 pb-2">
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style="background:rgba(124,108,255,.14);color:#a5b4fc;border:1px solid rgba(124,108,255,.4)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+      Unlimited Free Usage
+    </span>
+    <span class="text-xs text-slate-500">No signup · No paywall · Your CSS never leaves your browser</span>
+  </div>
+  <h1 class="font-disp text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
+    CSS Specificity <span style="background:linear-gradient(90deg,#7c6cff,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent">Analyzer</span>
+  </h1>
+  <p class="mt-3 max-w-2xl text-slate-400 text-sm sm:text-base">
+    Paste your <em class="not-italic text-slate-200">entire stylesheet</em> and SpecScope scores every selector, ranks them from heaviest to lightest, explains each score in plain English, and hunts down specificity wars, <span class="font-mono text-xs">!important</span> abuse, and ID overuse — then suggests simpler selectors in one click.
+  </p>
+</section>
+
+<!-- TOP AD (verbatim) -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pt-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <div class="origin-top scale-[0.44] sm:scale-100 shrink-0">
+        <script>
+          atOptions = { 'key' : '4e68ac77881c17fe128a46565d9a4e8c', 'format' : 'iframe', 'height' : 90, 'width' : 728, 'params' : {} };
+        </script>
+        <script src="https://www.highrevenueformat.com/4e68ac77881c17fe128a46565d9a4e8c/invoke.js"></script>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TOOL ================= -->
+<main class="mx-auto max-w-6xl px-4 sm:px-6 py-8">
+
+  <!-- INPUT PANEL -->
+  <section class="panel rounded-2xl p-4 sm:p-6 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <label for="css-input" class="font-disp font-semibold text-lg">Paste your whole stylesheet</label>
+      <div class="flex flex-wrap gap-2">
+        <button id="sample-btn" class="text-xs font-semibold px-3 py-2 rounded-lg border border-specedge text-slate-300 hover:border-specpri hover:text-white transition">Load sample CSS</button>
+        <button id="clear-btn" class="text-xs font-semibold px-3 py-2 rounded-lg border border-specedge text-slate-300 hover:border-specpri hover:text-white transition">Clear</button>
+        <button id="analyze-btn" class="text-sm font-bold px-5 py-2 rounded-lg text-white transition" style="background:linear-gradient(135deg,#7c6cff,#5a4fe0);box-shadow:0 4px 24px rgba(124,108,255,.35)">Analyze stylesheet</button>
+      </div>
+    </div>
+    <textarea id="css-input" rows="13" spellcheck="false" placeholder="/* Paste your entire .css file here — @media blocks, comments and all. SpecScope parses every selector and ranks them. */" class="font-mono w-full text-[13px] leading-relaxed rounded-xl p-4 border border-specedge focus:border-specpri focus:outline-none" style="background:#080d1d"></textarea>
+    <p class="mt-2 text-xs text-slate-500">Tip: include <span class="font-mono">:is()</span>, <span class="font-mono">:where()</span>, <span class="font-mono">:not()</span> and <span class="font-mono">:has()</span> selectors — SpecScope scores them exactly per the CSS Selectors Level 4 rules.</p>
+  </section>
+
+  <!-- STATS ROW -->
+  <section id="stats-row" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+    <div class="panel rounded-2xl p-4 sm:p-5">
+      <div class="text-[11px] uppercase tracking-[0.15em] text-slate-500 mb-1">Selectors scanned</div>
+      <div id="stat-selectors" class="stat-num font-disp text-2xl sm:text-3xl font-bold glow-num" style="color:#a5b4fc">0</div>
+    </div>
+    <div class="panel rounded-2xl p-4 sm:p-5">
+      <div class="text-[11px] uppercase tracking-[0.15em] text-slate-500 mb-1">!important found</div>
+      <div id="stat-important" class="stat-num font-disp text-2xl sm:text-3xl font-bold" style="color:#f87171">0</div>
+    </div>
+    <div class="panel rounded-2xl p-4 sm:p-5">
+      <div class="text-[11px] uppercase tracking-[0.15em] text-slate-500 mb-1">ID selectors</div>
+      <div id="stat-ids" class="stat-num font-disp text-2xl sm:text-3xl font-bold" style="color:#fbbf24">0</div>
+    </div>
+    <div class="panel rounded-2xl p-4 sm:p-5">
+      <div class="text-[11px] uppercase tracking-[0.15em] text-slate-500 mb-1">Specificity ties</div>
+      <div id="stat-wars" class="stat-num font-disp text-2xl sm:text-3xl font-bold" style="color:#22d3ee">0</div>
+    </div>
+  </section>
+
+  <!-- WARNINGS -->
+  <section class="mb-6">
+    <h2 class="font-disp text-xl font-bold mb-3">Audit findings</h2>
+    <div id="warnings-panel" class="grid gap-3">
+      <div class="panel rounded-2xl p-5 text-sm text-slate-500">Run an analysis to see !important abuse, ID overuse, overweight selectors, and specificity wars.</div>
+    </div>
+  </section>
+
+  <!-- RANKED RESULTS -->
+  <section class="mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <h2 class="font-disp text-xl font-bold">Ranked selectors <span class="text-sm font-normal text-slate-500">— heaviest first</span></h2>
+      <div class="flex flex-wrap gap-2">
+        <button id="copy-report-btn" class="text-xs font-semibold px-3 py-2 rounded-lg border border-specedge text-slate-300 hover:border-specacc hover:text-white transition">Copy Markdown report</button>
+        <button id="download-report-btn" class="text-xs font-semibold px-3 py-2 rounded-lg border border-specedge text-slate-300 hover:border-specacc hover:text-white transition">Download .md</button>
+      </div>
+    </div>
+    <div id="results-list" class="grid gap-3">
+      <div id="results-empty" class="panel rounded-2xl p-8 text-center text-sm text-slate-500">
+        <div class="font-mono text-specpri text-lg mb-2">(0, 0, 0)</div>
+        Nothing scanned yet. Paste a stylesheet above and hit <strong class="text-slate-300">Analyze stylesheet</strong> — every selector gets scored, ranked, and explained.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- BOTTOM AD (verbatim) -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pb-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <script async src="https://js.wpadmngr.com/static/adManager.js" data-admpid="464498"></script>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SEO ARTICLE ================= -->
+<section class="mx-auto max-w-6xl px-4 sm:px-6 py-10">
+  <article id="seo-article" class="article-body max-w-3xl">
+    <h2>What Is CSS Specificity?</h2>
+    <p>CSS specificity is the scoring system browsers use to decide which style rule wins when several rules target the same element. Every selector you write earns a score, and the rule with the highest score takes priority — regardless of where it appears in your file. Understanding this scoring system is the difference between CSS that behaves predictably and CSS that feels haunted. When a style refuses to apply and you cannot figure out why, specificity is almost always the culprit.</p>
+    <p>The classic mental model is a three-column score written as <code>(a, b, c)</code>. The <strong>a</strong> column counts ID selectors, the <strong>b</strong> column counts class selectors, attribute selectors, and pseudo-classes, and the <strong>c</strong> column counts type selectors (like <code>div</code> or <code>p</code>) and pseudo-elements (like <code>::before</code>). A selector such as <code>#nav .menu li</code> scores <code>(1, 1, 1)</code>: one ID, one class, one element. When comparing two selectors, the browser compares column by column from left to right — a single ID beats any number of classes, and a single class beats any number of element selectors.</p>
+    <p>Many developers learn a shortcut version: IDs are worth 100, classes are worth 10, elements are worth 1, so <code>#nav .menu li</code> is "111". That shortcut is handy, but it is not literally how browsers compute it — eleven classes do <em>not</em> beat one ID. A proper css specificity calculator shows you the real <code>(a, b, c)</code> tuple so you never get fooled by the decimal shorthand.</p>
+
+    <h2>How to Calculate Specificity: The (a, b, c) System</h2>
+    <p>Let us walk through the counting rules precisely, because the edge cases are where bugs hide. Start with a score of <code>(0, 0, 0)</code> and add points for each part of the selector:</p>
+    <ul>
+      <li><strong>IDs</strong> — each <code>#header</code> adds 1 to the <strong>a</strong> column. Two IDs, like <code>#main #content</code>, score <code>(2, 0, 0)</code>.</li>
+      <li><strong>Classes</strong> — each <code>.button</code> adds 1 to the <strong>b</strong> column.</li>
+      <li><strong>Attribute selectors</strong> — <code>[type="email"]</code> and <code>[data-open]</code> each add 1 to <strong>b</strong>, exactly like a class.</li>
+      <li><strong>Pseudo-classes</strong> — <code>:hover</code>, <code>:focus</code>, <code>:nth-child(2)</code> each add 1 to <strong>b</strong>.</li>
+      <li><strong>Type selectors</strong> — each <code>div</code>, <code>span</code>, or <code>a</code> adds 1 to the <strong>c</strong> column.</li>
+      <li><strong>Pseudo-elements</strong> — <code>::before</code>, <code>::after</code>, <code>::first-line</code> each add 1 to <strong>c</strong>. The legacy single-colon forms <code>:before</code> and <code>:after</code> count the same way.</li>
+      <li><strong>Universal selector</strong> — <code>*</code> adds nothing at all: <code>(0, 0, 0)</code>.</li>
+      <li><strong>Combinators</strong> — spaces, <code>&gt;</code>, <code>+</code>, and <code>~</code> add nothing; they only describe relationships between the parts that do score.</li>
+    </ul>
+    <p>So <code>ul.nav li a:hover</code> breaks down as one class plus one pseudo-class in the b column and three type selectors in the c column: <code>(0, 2, 3)</code>. And <code>#sidebar .widget h3::before</code> is <code>(1, 1, 2)</code>. If you want to check css selector specificity by hand, write the selector out, circle each scoring part, and tally the columns — or paste your entire file into a css specificity analyzer and let it do the tallying for every selector at once, which is far less error-prone on a real-world stylesheet with hundreds of rules.</p>
+
+    <h2>Why You Need a Whole-Stylesheet Specificity Analyzer</h2>
+    <p>Single-selector calculators are fine for settling a debate about one rule, but real CSS problems are never about one rule. They are about the <em>distribution</em> of specificity across a whole file: the slow creep of IDs, the duplicated scores fighting silent wars, the <code>!important</code> someone added at 2 AM that now forces every later override to shout louder. A whole-stylesheet css specificity analyzer reveals patterns no single-selector tool can show you.</p>
+    <p>Consider a typical aging codebase. It starts clean: classes everywhere, scores hovering around <code>(0, 1, 0)</code> to <code>(0, 2, 1)</code>. Then a deadline hits, and someone writes <code>#checkout .summary .total</code> at <code>(1, 2, 0)</code> to force a fix. The next developer cannot override it with classes, so they add another ID. Within a year the file is full of 200-point selectors, <code>!important</code> declarations, and rules whose only reason for existing is to out-shout the previous rule. This is called <strong>specificity debt</strong>, and like all debt, it compounds.</p>
+    <p>A ranked scan makes the debt visible. When you see your selectors sorted heaviest-first, the outliers jump out immediately: the <code>(2, 3, 4)</code> monster at the top, the cluster of identical <code>(0, 3, 0)</code> scores in the middle that are one reorder away from breaking. That ranked view is the single most useful lens for CSS maintenance, and it is the centerpiece of SpecScope.</p>
+
+    <h2>:is(), :where(), :not(), and :has() — The Tricky Parts</h2>
+    <p>Modern CSS added functional pseudo-classes that follow special scoring rules, and they confuse even experienced developers. Here is exactly how each one behaves:</p>
+    <h3>:where() always scores zero</h3>
+    <p><code>:where()</code> is the great eraser. No matter what you put inside the parentheses — even an ID — the whole thing contributes <code>(0, 0, 0)</code>. <code>:where(#header) .nav a</code> scores just <code>(0, 1, 1)</code>: the ID inside <code>:where()</code> is completely ignored. This makes <code>:where()</code> perfect for writing low-specificity defaults and resets that are easy to override later.</p>
+    <h3>:is(), :not(), and :has() take the best of their arguments</h3>
+    <p><code>:is()</code>, <code>:not()</code>, and <code>:has()</code> do not add any points of their own — instead, each one adopts the <em>highest</em> specificity among its arguments. <code>:is(.btn, #cta)</code> scores <code>(1, 0, 0)</code> because of the ID, even though a class is also listed. <code>:not(.disabled)</code> scores <code>(0, 1, 0)</code>. <code>article:has(img.hero)</code> scores <code>(0, 1, 2)</code>: the <code>:has()</code> borrows <code>(0, 1, 1)</code> from <code>img.hero</code>, and the <code>article</code> type selector adds its own point. These can nest, too — <code>:is(:where(#a), .b)</code> scores <code>(0, 1, 0)</code>, because the <code>:where()</code> argument contributes zero and the class wins the max.</p>
+    <h3>:nth-child() with "of"</h3>
+    <p>A plain <code>:nth-child(2n+1)</code> is just a pseudo-class: <code>(0, 1, 0)</code>. But Selectors Level 4 allows <code>:nth-child(2n of .featured)</code>, and in that case the selector after <code>of</code> adds its own specificity on top — so that example scores <code>(0, 2, 0)</code>. Very few calculators handle this correctly; SpecScope does.</p>
+    <p>Getting these rules right matters because a single mis-scored <code>:is()</code> can make you believe a rule is weaker than it is, sending you down a debugging rabbit hole. When you check css selector specificity, always verify the tool handles the functional pseudo-classes — or just use one that was built with them in mind.</p>
+
+    <h2>Specificity Wars: How They Start and How to End Them</h2>
+    <p>A <strong>specificity war</strong> happens when two or more selectors with identical <code>(a, b, c)</code> scores target the same element. With equal scores, the winner is decided purely by source order — whichever rule comes later in the file wins. That sounds manageable until you realize it makes your styles order-dependent: moving a rule, concatenating files in a different order, or loading a stylesheet asynchronously can silently flip the outcome.</p>
+    <p>Wars usually start innocently. Two developers style the same component from different files, both reach for <code>.card .title</code>, and everything works until someone reorders the imports. Or a utility class like <code>.hidden</code> at <code>(0, 1, 0)</code> ties with a component class at <code>(0, 1, 0)</code>, and the utility mysteriously stops working depending on which stylesheet loads last.</p>
+    <p>The fixes, in order of preference: <strong>merge</strong> the tied rules if they style the same thing; <strong>differentiate</strong> the scores deliberately (give the rule that should win one more class); or <strong>lower</strong> everything involved so ties become unlikely. What you should never do is resolve a tie with <code>!important</code> — that just promotes the war to a louder battlefield. SpecScope's audit flags every tie at a meaningful score so you can defuse them before they bite.</p>
+
+    <h2>!important: The Nuclear Option</h2>
+    <p>The <code>!important</code> declaration outranks all normal specificity — an <code>!important</code> on a <code>(0, 1, 0)</code> rule beats a normal <code>(2, 5, 3)</code> rule. The only thing that beats an <code>!important</code> is another <code>!important</code> with equal-or-higher specificity appearing later. This creates an arms race with no natural ceiling: each override must shout louder than the last, and the stylesheet becomes a shouting match.</p>
+    <p>There are legitimate uses — user style sheets, utility classes in frameworks, and overriding third-party CSS you cannot edit are the classic cases. But inside your own codebase, <code>!important</code> is almost always a symptom: it means the underlying specificity got too tangled to reason about, so someone reached for the hammer. The professional fix is to audit the file, find the overweight selectors that forced the <code>!important</code> into existence, slim them down, and then delete the hammer. Count your <code>!important</code> declarations regularly; a healthy stylesheet has close to zero.</p>
+
+    <h2>7 Practical Ways to Lower Specificity</h2>
+    <ol>
+      <li><strong>Drop ancestor chains.</strong> <code>#nav ul.menu li.item a.link</code> can almost always become <code>#nav .link</code> — or just <code>.link</code> if the class is unique. Every removed ancestor is points you will never have to outbid later.</li>
+      <li><strong>Drop type qualifiers.</strong> <code>div.card</code> → <code>.card</code>, <code>ul.nav</code> → <code>.nav</code>. The element name adds a point and makes the rule brittle against markup changes.</li>
+      <li><strong>Stop qualifying IDs.</strong> <code>div#header</code> and <code>#page #header</code> are pure waste — an ID is already unique. Bare <code>#header</code> matches exactly the same elements at a lower score.</li>
+      <li><strong>Use :where() for defaults.</strong> Wrap reset and base styles in <code>:where()</code> so they score zero and any component class overrides them effortlessly.</li>
+      <li><strong>Prefer classes over IDs for styling.</strong> Reserve IDs for JavaScript hooks and fragment anchors. A class-based architecture (BEM, utility classes) keeps the whole file in the <code>(0, 1, 0)</code>–<code>(0, 3, 0)</code> band where overrides are cheap.</li>
+      <li><strong>Flatten deep nesting.</strong> Preprocessor nesting is convenient but generates long descendant chains. If a nested rule compiles to five compounds, give the target its own class instead.</li>
+      <li><strong>Delete dead !important.</strong> After slimming the selectors above, re-test: many <code>!important</code> declarations will turn out to be unnecessary once the scores around them drop.</li>
+    </ol>
+
+    <h2>How to Use SpecScope</h2>
+    <p>Using this css specificity calculator could not be simpler. Paste your entire stylesheet — comments, <code>@media</code> blocks and all — into the analyzer box and press <strong>Analyze stylesheet</strong>. SpecScope parses every rule (flattening media queries with their context noted), computes the exact <code>(a, b, c)</code> score for each selector including correct <code>:is()</code> / <code>:where()</code> / <code>:not()</code> / <code>:has()</code> handling, and presents a ranked leaderboard from heaviest to lightest.</p>
+    <p>Above the ranking you get an audit dashboard: total selectors scanned, <code>!important</code> count, ID usage, and detected specificity ties, plus plain-English warning cards explaining each problem and which selectors cause it. Click any selector to expand its <strong>token breakdown</strong> — a line-by-line explanation of what each part contributes and why — or hit <strong>Simplify</strong> for a one-click leaner selector with the before/after scores shown side by side. When you are done, export the whole audit as a <strong>Markdown report</strong> to share with your team or attach to a pull request. Everything runs locally in your browser; your CSS is never uploaded anywhere.</p>
+  </article>
+
+  <!-- ================= FAQs ================= -->
+  <section class="max-w-3xl">
+    <h2 class="font-disp text-2xl font-bold mb-4">Frequently asked questions</h2>
+    <div class="grid gap-3">
+      <details class="faq panel rounded-xl p-4">
+        <summary class="flex items-center justify-between gap-3 font-semibold">How do you calculate CSS specificity?<span class="faq-plus text-specpri text-xl leading-none">+</span></summary>
+        <p class="mt-2 text-sm text-slate-400 leading-relaxed">Count three columns, written as (a, b, c): IDs add to <strong>a</strong>, classes, attribute selectors and pseudo-classes add to <strong>b</strong>, and type selectors and pseudo-elements add to <strong>c</strong>. Compare left to right — one ID beats any number of classes. For example, <span class="font-mono text-xs">#nav .menu li</span> scores (1, 1, 1). Paste your stylesheet into the analyzer above and every selector is scored automatically.</p>
+      </details>
+      <details class="faq panel rounded-xl p-4">
+        <summary class="flex items-center justify-between gap-3 font-semibold">Does :where() really add zero specificity?<span class="faq-plus text-specpri text-xl leading-none">+</span></summary>
+        <p class="mt-2 text-sm text-slate-400 leading-relaxed">Yes — always. Per the CSS Selectors Level 4 spec, <span class="font-mono text-xs">:where()</span> contributes (0, 0, 0) no matter what is inside the parentheses, even an ID. So <span class="font-mono text-xs">:where(#header) .nav</span> scores just (0, 1, 0). That makes it ideal for resets and defaults you want to be easy to override.</p>
+      </details>
+      <details class="faq panel rounded-xl p-4">
+        <summary class="flex items-center justify-between gap-3 font-semibold">How do :is(), :not() and :has() affect specificity?<span class="faq-plus text-specpri text-xl leading-none">+</span></summary>
+        <p class="mt-2 text-sm text-slate-400 leading-relaxed">All three adopt the <em>highest</em> specificity among their arguments instead of adding their own points. <span class="font-mono text-xs">:is(.btn, #cta)</span> scores (1, 0, 0) because of the ID; <span class="font-mono text-xs">:not(.disabled)</span> scores (0, 1, 0); <span class="font-mono text-xs">article:has(img.hero)</span> scores (0, 1, 2). They can nest, and the max-of-arguments rule applies at every level.</p>
+      </details>
+      <details class="faq panel rounded-xl p-4">
+        <summary class="flex items-center justify-between gap-3 font-semibold">Why is !important considered bad practice?<span class="faq-plus text-specpri text-xl leading-none">+</span></summary>
+        <p class="mt-2 text-sm text-slate-400 leading-relaxed">Because it breaks the cascade's scoring system: an <span class="font-mono text-xs">!important</span> declaration beats any normal rule, so the only way to override it later is another <span class="font-mono text-xs">!important</span>. That arms race makes stylesheets unpredictable and hard to maintain. It is fine for user stylesheets or third-party overrides, but inside your own code it usually signals specificity debt that should be fixed at the root.</p>
+      </details>
+      <details class="faq panel rounded-xl p-4">
+        <summary class="flex items-center justify-between gap-3 font-semibold">What is a specificity war and how do I fix one?<span class="faq-plus text-specpri text-xl leading-none">+</span></summary>
+        <p class="mt-2 text-sm text-slate-400 leading-relaxed">A specificity war is two or more selectors with identical (a, b, c) scores fighting over the same element — with tied scores, source order alone decides the winner, so reordering files can silently break your UI. Fix wars by merging the tied rules, deliberately differentiating their scores, or lowering all of them. SpecScope's audit lists every tie it finds in your stylesheet.</p>
+      </details>
+      <details class="faq panel rounded-xl p-4">
+        <summary class="flex items-center justify-between gap-3 font-semibold">Is SpecScope free, and does my CSS leave my browser?<span class="faq-plus text-specpri text-xl leading-none">+</span></summary>
+        <p class="mt-2 text-sm text-slate-400 leading-relaxed">Yes, it is completely free with unlimited usage — no signup, no paywall, no watermarks. All parsing, scoring, and auditing happens locally in your browser with JavaScript; your stylesheet is never uploaded to any server. You can even disconnect from the internet after the page loads and it keeps working.</p>
+      </details>
+    </div>
+  </section>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer class="border-t border-specedge/70 mt-6">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+    <span class="font-disp font-semibold text-slate-300">SpecScope <span style="color:#22d3ee">·</span> CSS Specificity Analyzer</span>
+    <span>Scores computed per CSS Selectors Level 4 · 100% client-side</span>
+  </div>
+</footer>
+
+<!-- JSON-LD FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do you calculate CSS specificity?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Count three columns, written as (a, b, c): IDs add to a, classes, attribute selectors and pseudo-classes add to b, and type selectors and pseudo-elements add to c. Compare left to right — one ID beats any number of classes. For example, #nav .menu li scores (1, 1, 1)." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does :where() really add zero specificity?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes — always. Per the CSS Selectors Level 4 spec, :where() contributes (0, 0, 0) no matter what is inside the parentheses, even an ID. So :where(#header) .nav scores just (0, 1, 0)." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do :is(), :not() and :has() affect specificity?",
+      "acceptedAnswer": { "@type": "Answer", "text": "All three adopt the highest specificity among their arguments instead of adding their own points. :is(.btn, #cta) scores (1, 0, 0) because of the ID; :not(.disabled) scores (0, 1, 0); article:has(img.hero) scores (0, 1, 2)." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why is !important considered bad practice?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Because it breaks the cascade's scoring system: an !important declaration beats any normal rule, so the only way to override it later is another !important. That arms race makes stylesheets unpredictable and hard to maintain." }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a specificity war and how do I fix one?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A specificity war is two or more selectors with identical (a, b, c) scores fighting over the same element — with tied scores, source order alone decides the winner. Fix wars by merging the tied rules, deliberately differentiating their scores, or lowering all of them." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is SpecScope free, and does my CSS leave my browser?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes, it is completely free with unlimited usage — no signup, no paywall, no watermarks. All parsing, scoring, and auditing happens locally in your browser; your stylesheet is never uploaded to any server." }
+    }
+  ]
+}
+</script>
+
+<!-- ============ PURE LOGIC LIB (inlined at build) ============ -->
+<script id="v3-specscope-css-specificity-analyzer-lib">
+/* SpecScope CSS specificity engine — PURE functions only.
+   No DOM access, no browser globals, no storage, no network, no timers.
+   Top-level function declarations so the test harness can eval via new Function.
+   NOTE: must never contain the literal "</" + "script>" sequence. */
+
+var LEGACY_PSEUDO_ELEMENTS = { 'before': 1, 'after': 1, 'first-line': 1, 'first-letter': 1 };
+var SELECTOR_ARG_PSEUDOS = { 'not': 1, 'is': 1, 'matches': 1, 'has': 1, '-webkit-any': 1, '-moz-any': 1 };
+var IDENT_PART = '(?:\\\\.|[A-Za-z0-9_-])+';
+
+/* ---------- tiny helpers ---------- */
+
+function maxSpec(x, y) {
+  if (y.a !== x.a) return y.a > x.a ? y : x;
+  if (y.b !== x.b) return y.b > x.b ? y : x;
+  return y.c > x.c ? y : x;
+}
+
+function specValue(sp) { return sp.a * 100 + sp.b * 10 + sp.c; }
+
+function specLabel(sp) { return '(' + sp.a + ', ' + sp.b + ', ' + sp.c + ')'; }
+
+function specEqual(x, y) { return x.a === y.a && x.b === y.b && x.c === y.c; }
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function mdEscape(s) {
+  return String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+}
+
+/* ---------- top-level splitting (paren / bracket / quote aware) ---------- */
+
+/* splitTopLevel(str, sep) — split on a single char separator, ignoring
+   separators nested inside (), [], or quotes. */
+function splitTopLevel(str, sep) {
+  var parts = [], cur = '', i = 0, n = String(str).length;
+  var depthP = 0, depthB = 0, quote = null;
+  while (i < n) {
+    var ch = str[i];
+    if (quote) { cur += ch; if (ch === quote) quote = null; i++; continue; }
+    if (ch === '"' || ch === "'") { quote = ch; cur += ch; i++; continue; }
+    if (ch === '\\') { cur += ch + (str[i + 1] || ''); i += 2; continue; }
+    if (ch === '(') depthP++;
+    else if (ch === ')') depthP = Math.max(0, depthP - 1);
+    else if (ch === '[') depthB++;
+    else if (ch === ']') depthB = Math.max(0, depthB - 1);
+    if (ch === sep && depthP === 0 && depthB === 0) { parts.push(cur); cur = ''; i++; continue; }
+    cur += ch; i++;
+  }
+  parts.push(cur);
+  return parts;
+}
+
+/* splitComplex(selector) — split a complex selector into compound selectors,
+   capturing the combinator that precedes each compound. */
+function splitComplex(selector) {
+  var parts = [], cur = '', pending = '', i = 0, n = String(selector).length;
+  var depthP = 0, depthB = 0, quote = null;
+  function flush() {
+    var t = cur.trim();
+    if (t) { parts.push({ compound: t, combinator: pending }); pending = ''; }
+    cur = '';
+  }
+  while (i < n) {
+    var ch = selector[i];
+    if (quote) { cur += ch; if (ch === quote) quote = null; i++; continue; }
+    if (ch === '"' || ch === "'") { quote = ch; cur += ch; i++; continue; }
+    if (ch === '\\') { cur += ch + (selector[i + 1] || ''); i += 2; continue; }
+    if (ch === '(') depthP++;
+    else if (ch === ')') depthP = Math.max(0, depthP - 1);
+    else if (ch === '[') depthB++;
+    else if (ch === ']') depthB = Math.max(0, depthB - 1);
+    var top = depthP === 0 && depthB === 0;
+    if (top && (ch === '>' || ch === '+' || ch === '~')) { flush(); pending = ch; i++; continue; }
+    if (top && /\s/.test(ch)) {
+      flush();
+      if (!pending) pending = ' ';
+      while (i < n && /\s/.test(selector[i])) i++;
+      continue;
+    }
+    cur += ch; i++;
+  }
+  flush();
+  return parts;
+}
+
+function splitCompounds(selector) {
+  return splitComplex(selector).map(function (p) { return p.compound; });
+}
+
+function combinatorLabel(comb) {
+  if (comb === '>') return 'child combinator — matches only direct children';
+  if (comb === '+') return 'adjacent-sibling combinator — matches the very next sibling';
+  if (comb === '~') return 'general-sibling combinator — matches any later sibling';
+  return 'descendant combinator — matches anything nested inside, at any depth';
+}
+
+/* ---------- functional pseudo-class scanner ---------- */
+
+/* Extract functional pseudo selectors (:name(...) / ::name(...)) from a compound
+   selector, replacing each with equal-length whitespace so string indices stay
+   aligned for the later passes. */
+function extractFunctionalPseudos(compound) {
+  var pseudos = [];
+  var out = '';
+  var i = 0, n = compound.length;
+  while (i < n) {
+    var ch = compound[i];
+    if (ch === '\\') { out += ch + (compound[i + 1] || ''); i += 2; continue; }
+    if (ch === ':' && i + 1 < n && /[a-zA-Z-]/.test(compound[i + 1])) {
+      var doubleColon = compound[i + 1] === ':';
+      var j = i + (doubleColon ? 2 : 1);
+      var nameStart = j;
+      while (j < n && /[a-zA-Z0-9-]/.test(compound[j])) j++;
+      var name = compound.slice(nameStart, j);
+      if (name && compound[j] === '(') {
+        var start = i, depth = 0, q = null, k = j;
+        while (k < n) {
+          var c2 = compound[k];
+          if (q) { if (c2 === q) q = null; }
+          else if (c2 === '"' || c2 === "'") q = c2;
+          else if (c2 === '\\') { k++; }
+          else if (c2 === '(') depth++;
+          else if (c2 === ')') { depth--; if (depth === 0) break; }
+          k++;
+        }
+        var raw, arg;
+        if (k < n) { raw = compound.slice(start, k + 1); arg = compound.slice(j + 1, k); i = k + 1; }
+        else { raw = compound.slice(start); arg = compound.slice(j + 1); i = n; } // unbalanced: graceful
+        pseudos.push({ index: start, raw: raw, name: name, arg: arg, doubleColon: doubleColon });
+        out += new Array(raw.length + 1).join(' ');
+        continue;
+      }
+      out += ch; i++;
+      continue;
+    }
+    out += ch; i++;
+  }
+  return { rest: out, pseudos: pseudos };
+}
+
+/* findTopLevelOf(arg) — for :nth-child(2n of .foo): return the selector after
+   a top-level " of ", or null. */
+function findTopLevelOf(arg) {
+  var i = 0, n = arg.length, depthP = 0, depthB = 0, q = null;
+  while (i < n) {
+    var ch = arg[i];
+    if (q) { if (ch === q) q = null; i++; continue; }
+    if (ch === '"' || ch === "'") { q = ch; i++; continue; }
+    if (ch === '\\') { i += 2; continue; }
+    if (ch === '(') depthP++;
+    else if (ch === ')') depthP = Math.max(0, depthP - 1);
+    else if (ch === '[') depthB++;
+    else if (ch === ']') depthB = Math.max(0, depthB - 1);
+    if (depthP === 0 && depthB === 0 &&
+        (ch === ' ' || ch === '\t' || ch === '\n') &&
+        arg.slice(i, i + 4).toLowerCase().replace(/\s+/g, ' ') === ' of ') {
+      // confirm word boundary after "of"
+      var after = arg.slice(i).match(/^\s+of(\s|\)|$)/i);
+      if (after) return arg.slice(i + after[0].length).trim() || null;
+    }
+    i++;
+  }
+  return null;
+}
+
+/* pseudoTokenSpec(p) — specificity contribution of one functional pseudo token. */
+function pseudoTokenSpec(p) {
+  var name = p.name.toLowerCase();
+  var sp = { a: 0, b: 0, c: 0 };
+  if (p.doubleColon) {
+    if (name === 'slotted' && p.arg.trim()) {
+      var inner = specificityOf(p.arg);
+      return { kind: 'pseudo-element', spec: inner,
+        label: '::slotted() — takes the specificity of its argument, ' + specLabel(inner) };
+    }
+    sp.c += 1;
+    return { kind: 'pseudo-element', spec: sp,
+      label: 'pseudo-element ::' + p.name + ' — worth 1 point in the c column' };
+  }
+  if (name === 'where') {
+    return { kind: 'pseudo-class-zero', spec: sp,
+      label: ':where() — always contributes 0, no matter what is inside the parentheses' };
+  }
+  if (SELECTOR_ARG_PSEUDOS[name]) {
+    var args = splitTopLevel(p.arg, ',');
+    var best = { a: 0, b: 0, c: 0 };
+    args.forEach(function (x) { best = maxSpec(best, specificityOf(x)); });
+    var what = name === 'not' ? ':not() — takes the specificity of its argument'
+      : name === 'has' ? ':has() — takes the specificity of its argument'
+      : ':' + p.name + '() — takes the highest specificity of its arguments';
+    return { kind: 'pseudo-class', spec: best, label: what + ', here ' + specLabel(best) };
+  }
+  if (/^nth-/.test(name)) {
+    sp.b += 1;
+    var ofPart = findTopLevelOf(p.arg);
+    if (ofPart) {
+      var inner2 = specificityOf(ofPart);
+      sp.a += inner2.a; sp.b += inner2.b; sp.c += inner2.c;
+      return { kind: 'pseudo-class', spec: sp,
+        label: ':' + p.name + '() — counts as one pseudo-class, plus ' + specLabel(inner2) + ' from its "of ' + ofPart + '" selector' };
+    }
+    return { kind: 'pseudo-class', spec: sp,
+      label: ':' + p.name + '() — counts as one pseudo-class (10 points), its An+B argument adds nothing' };
+  }
+  sp.b += 1;
+  return { kind: 'pseudo-class', spec: sp,
+    label: 'pseudo-class :' + p.name + ' — worth 10 points in the b column' };
+}
+
+/* ---------- compound tokenization & specificity ---------- */
+
+/* tokenizeCompound(compound) — ordered list of tokens, each with its own
+   {a,b,c} contribution and a plain-English label. */
+function tokenizeCompound(compound) {
+  var tokens = [];
+  var ex = extractFunctionalPseudos(compound);
+  ex.pseudos.forEach(function (p) {
+    var t = pseudoTokenSpec(p);
+    tokens.push({ index: p.index, raw: p.raw, kind: t.kind, name: p.name, arg: p.arg, spec: t.spec, label: t.label });
+  });
+  var rest = ex.rest;
+
+  // attribute selectors FIRST (bracket scan respects quotes) so that colons
+  // inside values like [data-x="a:b"] are never mistaken for pseudo-classes
+  var attrOut = '', ai = 0, an = rest.length;
+  while (ai < an) {
+    if (rest[ai] === '[') {
+      var aq = null, ak = ai + 1;
+      while (ak < an) {
+        var ac = rest[ak];
+        if (aq) { if (ac === aq) aq = null; }
+        else if (ac === '"' || ac === "'") aq = ac;
+        else if (ac === '\\') { ak++; }
+        else if (ac === ']') break;
+        ak++;
+      }
+      var rawAttr = ak < an ? rest.slice(ai, ak + 1) : rest.slice(ai);
+      tokens.push({ index: ai, raw: rawAttr, kind: 'attr', name: rawAttr, arg: null,
+        spec: { a: 0, b: 1, c: 0 }, label: 'attribute selector ' + rawAttr + ' — worth 10 points in the b column' });
+      attrOut += new Array(rawAttr.length + 1).join(' ');
+      ai += rawAttr.length;
+      continue;
+    }
+    attrOut += rest[ai]; ai++;
+  }
+  rest = attrOut;
+
+  rest = rest.replace(/::[a-zA-Z-]+/g, function (m, off) {
+    tokens.push({ index: off, raw: m, kind: 'pseudo-element', name: m.slice(2), arg: null,
+      spec: { a: 0, b: 0, c: 1 }, label: 'pseudo-element ' + m + ' — worth 1 point in the c column' });
+    return new Array(m.length + 1).join(' ');
+  });
+
+  rest = rest.replace(new RegExp('#' + IDENT_PART, 'g'), function (m, off) {
+    tokens.push({ index: off, raw: m, kind: 'id', name: m.slice(1), arg: null,
+      spec: { a: 1, b: 0, c: 0 }, label: 'ID selector ' + m + ' — worth 100 points in the a column' });
+    return new Array(m.length + 1).join(' ');
+  });
+
+  rest = rest.replace(new RegExp('\\.' + IDENT_PART, 'g'), function (m, off) {
+    tokens.push({ index: off, raw: m, kind: 'class', name: m.slice(1), arg: null,
+      spec: { a: 0, b: 1, c: 0 }, label: 'class selector ' + m + ' — worth 10 points in the b column' });
+    return new Array(m.length + 1).join(' ');
+  });
+
+  // single-colon pseudos run AFTER ids/classes so escaped colons in
+  // selectors like .md\:flex are not misread as pseudo-classes
+  rest = rest.replace(new RegExp(':(' + IDENT_PART + ')', 'g'), function (m, name, off) {
+    var lower = name.toLowerCase();
+    if (LEGACY_PSEUDO_ELEMENTS[lower]) {
+      tokens.push({ index: off, raw: m, kind: 'pseudo-element', name: name, arg: null,
+        spec: { a: 0, b: 0, c: 1 }, label: 'pseudo-element :' + name + ' (legacy single-colon syntax) — worth 1 point in the c column' });
+    } else {
+      tokens.push({ index: off, raw: m, kind: 'pseudo-class', name: name, arg: null,
+        spec: { a: 0, b: 1, c: 0 }, label: 'pseudo-class :' + name + ' — worth 10 points in the b column' });
+    }
+    return new Array(m.length + 1).join(' ');
+  });
+
+  // whatever is left is a type selector, universal selector, namespace, or junk
+  var tail = rest.trim();
+  if (tail && tail !== '*') {
+    var seg = tail.split('|').pop().trim();
+    if (seg === '&') {
+      tokens.push({ index: rest.indexOf('&'), raw: '&', kind: 'nesting', name: '&', arg: null,
+        spec: { a: 0, b: 0, c: 0 }, label: 'nesting selector & — takes its specificity from the parent rule, counted as 0 here' });
+    } else if (/^[a-zA-Z][a-zA-Z0-9-]*$/.test(seg)) {
+      tokens.push({ index: rest.lastIndexOf(seg), raw: seg, kind: 'type', name: seg, arg: null,
+        spec: { a: 0, b: 0, c: 1 }, label: 'type selector ' + seg + ' — worth 1 point in the c column' });
+    }
+    // anything else (stray punctuation, malformed input) is ignored gracefully
+  } else if (tail === '*') {
+    tokens.push({ index: rest.indexOf('*'), raw: '*', kind: 'universal', name: '*', arg: null,
+      spec: { a: 0, b: 0, c: 0 }, label: 'universal selector * — worth 0, it matches everything and scores nothing' });
+  }
+
+  tokens.sort(function (x, y) { return x.index - y.index; });
+  return tokens;
+}
+
+function specificityOfCompound(compound) {
+  var sp = { a: 0, b: 0, c: 0 };
+  tokenizeCompound(compound).forEach(function (t) {
+    sp.a += t.spec.a; sp.b += t.spec.b; sp.c += t.spec.c;
+  });
+  return sp;
+}
+
+/* specificityOf(selector) — full (a,b,c) for one single selector. */
+function specificityOf(selector) {
+  var sp = { a: 0, b: 0, c: 0 };
+  splitCompounds(String(selector == null ? '' : selector)).forEach(function (comp) {
+    var s = specificityOfCompound(comp);
+    sp.a += s.a; sp.b += s.b; sp.c += s.c;
+  });
+  return sp;
+}
+
+/* breakdownSentence(selector) — one plain-English summary line. */
+function breakdownSentence(selector) {
+  var counts = { id: [], cls: [], attr: [], pcls: [], pelt: [], type: [] };
+  splitCompounds(String(selector)).forEach(function (comp) {
+    tokenizeCompound(comp).forEach(function (t) {
+      if (t.kind === 'id') counts.id.push(t.raw);
+      else if (t.kind === 'class') counts.cls.push(t.raw);
+      else if (t.kind === 'attr') counts.attr.push(t.raw);
+      else if (t.kind === 'pseudo-class') counts.pcls.push(t.raw);
+      else if (t.kind === 'pseudo-element') counts.pelt.push(t.raw);
+      else if (t.kind === 'type') counts.type.push(t.raw);
+    });
+  });
+  var sp = specificityOf(selector);
+  var bits = [];
+  if (counts.id.length) bits.push(counts.id.length + ' ID' + (counts.id.length > 1 ? 's' : '') + ' (' + counts.id.join(', ') + ')');
+  if (counts.cls.length) bits.push(counts.cls.length + ' class' + (counts.cls.length > 1 ? 'es' : '') + ' (' + counts.cls.join(', ') + ')');
+  if (counts.attr.length) bits.push(counts.attr.length + ' attribute selector' + (counts.attr.length > 1 ? 's' : '') + ' (' + counts.attr.join(', ') + ')');
+  if (counts.pcls.length) bits.push(counts.pcls.length + ' pseudo-class' + (counts.pcls.length > 1 ? 'es' : '') + ' (' + counts.pcls.join(', ') + ')');
+  if (counts.pelt.length) bits.push(counts.pelt.length + ' pseudo-element' + (counts.pelt.length > 1 ? 's' : '') + ' (' + counts.pelt.join(', ') + ')');
+  if (counts.type.length) bits.push(counts.type.length + ' type selector' + (counts.type.length > 1 ? 's' : '') + ' (' + counts.type.join(', ') + ')');
+  if (!bits.length) return '“' + selector + '” scores ' + specLabel(sp) + ' — it contains no scoring selectors (universal selectors and :where() add nothing).';
+  return '“' + selector + '” scores ' + specLabel(sp) + ': ' + bits.join(' + ') + '.';
+}
+
+/* ---------- stylesheet parsing ---------- */
+
+function stripComments(css) {
+  return String(css == null ? '' : css).replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+function parseDeclarations(body) {
+  var decls = [];
+  splitTopLevel(body, ';').forEach(function (part) {
+    var p = part.trim();
+    if (!p || p.indexOf('{') !== -1 || p.indexOf('}') !== -1) return; // nested rule junk: skip gracefully
+    var segs = splitTopLevel(p, ':');
+    if (segs.length < 2) return;
+    var prop = segs[0].trim();
+    var value = segs.slice(1).join(':').trim();
+    if (!prop) return;
+    decls.push({ prop: prop, value: value, important: /!important\s*$/i.test(value) });
+  });
+  return decls;
+}
+
+/* parseBlock(text, context, rules) — recursive descent over a CSS source.
+   At-rules like @media/@supports/@container/@layer/@scope are flattened with
+   their prelude recorded as context. @keyframes/@font-face/@page are skipped. */
+function parseBlock(text, context, rules) {
+  var i = 0, n = text.length;
+  while (i < n) {
+    while (i < n && /[\s;}]/.test(text[i])) i++;
+    if (i >= n) break;
+    var headerStart = i, j = i, quote = null, headerEnd = -1, terminator = null;
+    while (j < n) {
+      var ch = text[j];
+      if (quote) { if (ch === quote) quote = null; j++; continue; }
+      if (ch === '"' || ch === "'") { quote = ch; j++; continue; }
+      if (ch === '\\') { j += 2; continue; }
+      if (ch === '{') { terminator = '{'; headerEnd = j; break; }
+      if (ch === ';') { terminator = ';'; headerEnd = j; break; }
+      j++;
+    }
+    if (terminator === null) break; // malformed tail: stop gracefully
+    var header = text.slice(headerStart, headerEnd).trim();
+    if (terminator === ';') { i = headerEnd + 1; continue; } // @import, @charset…
+    var bodyStart = headerEnd + 1, k = bodyStart, d = 1, q = null, balanced = true;
+    while (k < n && d > 0) {
+      var c2 = text[k];
+      if (q) { if (c2 === q) q = null; k++; continue; }
+      if (c2 === '"' || c2 === "'") { q = c2; k++; continue; }
+      if (c2 === '\\') { k += 2; continue; }
+      if (c2 === '{') d++;
+      else if (c2 === '}') d--;
+      k++;
+    }
+    if (d > 0) { balanced = false; }
+    var body = balanced ? text.slice(bodyStart, k - 1) : text.slice(bodyStart);
+    var hLower = header.toLowerCase();
+    if (/^@(media|supports|container|layer|scope)\b/.test(hLower)) {
+      parseBlock(body, context ? context + ' › ' + header : header, rules);
+    } else if (/^@/.test(header)) {
+      // @keyframes, @font-face, @page, … — not style selectors; skip
+    } else if (header) {
+      var decls = parseDeclarations(body);
+      var important = decls.some(function (dd) { return dd.important; });
+      splitTopLevel(header, ',').forEach(function (s) {
+        s = s.trim();
+        if (!s) return;
+        rules.push({ selector: s, declarations: decls, important: important, context: context || '' });
+      });
+    }
+    i = k;
+    if (!balanced) break; // unbalanced braces: keep what we parsed, stop
+  }
+  return rules;
+}
+
+/* parseStylesheet(css) — one entry per selector. Never throws on bad input. */
+function parseStylesheet(css) {
+  try {
+    return parseBlock(stripComments(css), '', []);
+  } catch (e) {
+    return [];
+  }
+}
+
+/* ---------- whole-stylesheet analysis ---------- */
+
+function analyzeStylesheet(css) {
+  var parsed = parseStylesheet(css);
+  var rules = parsed.map(function (r) {
+    var sp = specificityOf(r.selector);
+    return {
+      selector: r.selector, a: sp.a, b: sp.b, c: sp.c,
+      value: specValue(sp), label: specLabel(sp),
+      important: r.important, context: r.context,
+      compounds: splitCompounds(r.selector).length
+    };
+  });
+  var ranked = rules.slice().sort(function (x, y) {
+    return (y.a - x.a) || (y.b - x.b) || (y.c - x.c) || (x.selector < y.selector ? -1 : 1);
+  });
+
+  var total = rules.length;
+  var importantCount = rules.filter(function (r) { return r.important; }).length;
+  var idCount = rules.filter(function (r) { return r.a > 0; }).length;
+  var multiId = rules.filter(function (r) { return r.a >= 2; });
+  var deep = rules.filter(function (r) { return r.compounds > 4; });
+  var heavy = rules.filter(function (r) { return r.value >= 120; });
+  var sum = rules.reduce(function (acc, r) { return acc + r.value; }, 0);
+  var avg = total ? Math.round((sum / total) * 10) / 10 : 0;
+
+  // specificity wars: identical (a,b,c) shared by 2+ selectors with real weight
+  var groups = {};
+  rules.forEach(function (r) {
+    if (r.value < 20) return;
+    var key = r.a + ',' + r.b + ',' + r.c;
+    (groups[key] = groups[key] || []).push(r.selector);
+  });
+  var wars = Object.keys(groups).filter(function (k) { return groups[k].length >= 2; })
+    .map(function (k) { return { key: k, selectors: groups[k] }; })
+    .sort(function (x, y) { return y.selectors.length - x.selectors.length; });
+
+  var stats = {
+    total: total, important: importantCount, withIds: idCount,
+    idPct: total ? Math.round(idCount / total * 100) : 0,
+    avgValue: avg, wars: wars.length,
+    max: ranked.length ? { selector: ranked[0].selector, label: ranked[0].label, value: ranked[0].value } : null
+  };
+
+  var warnings = [];
+  function capList(arr) {
+    return arr.slice(0, 8).concat(arr.length > 8 ? ['…and ' + (arr.length - 8) + ' more'] : []);
+  }
+  if (importantCount) {
+    warnings.push({
+      type: 'important', severity: 'high',
+      title: importantCount + ' selector' + (importantCount > 1 ? 's use' : ' uses') + ' !important',
+      detail: '!important bulldozes the cascade — the only way to beat it later is another !important, and that arms race never ends. Delete it and fix the underlying specificity instead.',
+      selectors: capList(rules.filter(function (r) { return r.important; }).map(function (r) { return r.selector; }))
+    });
+  }
+  if (multiId.length) {
+    warnings.push({
+      type: 'multi-id', severity: 'high',
+      title: multiId.length + ' selector' + (multiId.length > 1 ? 's contain' : ' contains') + ' 2+ IDs',
+      detail: 'One ID already scores 100. Stacking IDs (200+) makes a selector nearly impossible to override without more IDs or !important.',
+      selectors: capList(multiId.map(function (r) { return r.selector; }))
+    });
+  } else if (total >= 5 && stats.idPct > 40) {
+    warnings.push({
+      type: 'id-overuse', severity: 'medium',
+      title: stats.idPct + '% of selectors use IDs',
+      detail: 'IDs are unique per page, so qualifying them with ancestors or classes is dead weight — and every ID locks that rule at 100+ points. Prefer classes for styling; reserve IDs for JS hooks.',
+      selectors: capList(rules.filter(function (r) { return r.a > 0; }).map(function (r) { return r.selector; }))
+    });
+  }
+  if (heavy.length) {
+    warnings.push({
+      type: 'heavy', severity: 'high',
+      title: heavy.length + ' overweight selector' + (heavy.length > 1 ? 's' : '') + ' (score 120+)',
+      detail: 'Anything at 120+ (an ID plus extras, or a pile of classes) is effectively un-overridable in normal CSS. These are the first candidates for simplification.',
+      selectors: capList(heavy.map(function (r) { return r.selector + '  ' + r.label; }))
+    });
+  }
+  if (deep.length) {
+    warnings.push({
+      type: 'deep', severity: 'medium',
+      title: deep.length + ' overly long selector chain' + (deep.length > 1 ? 's' : '') + ' (5+ parts)',
+      detail: 'Long descendant chains are brittle: any markup change breaks them, and they force the browser to match right-to-left through every ancestor. The rightmost class usually suffices.',
+      selectors: capList(deep.map(function (r) { return r.selector; }))
+    });
+  }
+  wars.forEach(function (w) {
+    warnings.push({
+      type: 'war', severity: 'medium',
+      title: 'Specificity tie at (' + w.key.split(',').join(', ') + ') — ' + w.selectors.length + ' selectors',
+      detail: 'Identical scores mean source order decides the winner. One innocent reorder and the UI breaks with no obvious cause — differentiate the scores or merge the rules.',
+      selectors: capList(w.selectors)
+    });
+  });
+  if (!warnings.length && total > 0) {
+    warnings.push({
+      type: 'clean', severity: 'low',
+      title: 'No specificity red flags found',
+      detail: 'No !important, no ID stacking, no overweight selectors, no ties. This stylesheet plays nicely with the cascade.',
+      selectors: []
+    });
+  }
+
+  return { rules: rules, ranked: ranked, stats: stats, warnings: warnings };
+}
+
+/* ---------- one-click simpler-selector suggestions ---------- */
+
+/* simplifyTarget(compound) — keep the meaningful hooks of the rightmost
+   compound (ID / classes / attributes / pseudos), drop the type qualifier. */
+function simplifyTarget(compound) {
+  var toks = tokenizeCompound(compound);
+  var kept = [], droppedType = null;
+  toks.forEach(function (t) {
+    if (t.kind === 'type') { droppedType = t.raw; return; }
+    if (t.kind === 'universal') return;
+    kept.push(t.raw);
+  });
+  if (!kept.length) return { text: '', note: null };
+  var note = droppedType
+    ? 'Dropped the `' + droppedType + '` type qualifier — the class/ID hook alone is cheaper and almost always sufficient.'
+    : null;
+  return { text: kept.join(''), note: note };
+}
+
+function suggestSimpler(selector) {
+  var notes = [];
+  var work = String(selector == null ? '' : selector).trim();
+  if (!work) return null;
+
+  var w2 = work.replace(/:where\(\s*([^(),]+?)\s*\)/gi, function (m, inner) {
+    notes.push('Unwrapped `:where()` — it always contributes 0, so the wrapper is pure noise.');
+    return inner.trim();
+  });
+  var hadWhere = w2 !== work;
+  work = w2;
+
+  var parts = splitComplex(work);
+  if (!parts.length) return null;
+  var last = parts[parts.length - 1].compound;
+  var idMatch = work.match(new RegExp('#' + IDENT_PART));
+  var suggestion = null;
+
+  if (idMatch) {
+    var target = simplifyTarget(last).text;
+    if (last.indexOf(idMatch[0]) !== -1) {
+      suggestion = target;
+      notes.push('Everything is anchored on unique `' + idMatch[0] + '` — kept the ID, dropped the type qualifier.');
+    } else {
+      suggestion = idMatch[0] + (target ? ' ' + target : '');
+      notes.push('IDs are unique per page, so every ancestor before `' + idMatch[0] + '` was dead weight.');
+    }
+    var st = simplifyTarget(last);
+    if (st.note && notes.indexOf(st.note) === -1) notes.push(st.note);
+  } else if (parts.length > 1) {
+    var t2 = simplifyTarget(last);
+    suggestion = t2.text;
+    notes.push('Dropped ' + (parts.length - 1) + ' ancestor qualifier' + (parts.length > 2 ? 's' : '') + '. The rightmost hook now does the targeting — double-check it is unique enough in your markup.');
+    if (t2.note) notes.push(t2.note);
+  } else {
+    var t3 = simplifyTarget(last);
+    suggestion = t3.text;
+    if (t3.note) notes.push(t3.note);
+  }
+
+  suggestion = String(suggestion || '').replace(/\s+/g, ' ').trim();
+  if (!suggestion) return null;
+  if (suggestion === work && !hadWhere) return null;
+  var before = specificityOf(work), after = specificityOf(suggestion);
+  return {
+    suggestion: suggestion,
+    before: before, after: after,
+    beforeValue: specValue(before), afterValue: specValue(after),
+    beforeLabel: specLabel(before), afterLabel: specLabel(after),
+    notes: notes
+  };
+}
+
+/* ---------- markdown report export ---------- */
+
+function buildMarkdownReport(analysis) {
+  var L = [];
+  var now = new Date();
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  var stamp = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+  L.push('# SpecScope — CSS Specificity Report');
+  L.push('');
+  L.push('Generated: ' + stamp + ' · Analyzed entirely in the browser, no CSS left your device.');
+  L.push('');
+  L.push('## Summary');
+  L.push('');
+  var s = analysis.stats;
+  L.push('- Selectors scanned: **' + s.total + '**');
+  L.push('- Average specificity score: **' + s.avgValue + '**');
+  L.push('- Selectors using `!important`: **' + s.important + '**');
+  L.push('- Selectors using IDs: **' + s.withIds + '** (' + s.idPct + '%)');
+  L.push('- Specificity ties detected: **' + s.wars + '**');
+  if (s.max) L.push('- Heaviest selector: `' + mdEscape(s.max.selector) + '` at **' + s.max.label + '**');
+  L.push('');
+  L.push('## Audit warnings');
+  L.push('');
+  analysis.warnings.forEach(function (w) {
+    var icon = w.severity === 'high' ? '🔴' : w.severity === 'medium' ? '🟡' : '🟢';
+    L.push('### ' + icon + ' ' + w.title);
+    L.push('');
+    L.push(w.detail);
+    L.push('');
+    w.selectors.forEach(function (sel) { L.push('- `' + mdEscape(sel) + '`'); });
+    if (w.selectors.length) L.push('');
+  });
+  L.push('## Ranked selectors (highest specificity first)');
+  L.push('');
+  L.push('| # | Selector | Specificity (a, b, c) | Score | !important |');
+  L.push('|---|----------|----------------------|-------|------------|');
+  analysis.ranked.forEach(function (r, idx) {
+    L.push('| ' + (idx + 1) + ' | `' + mdEscape(r.selector) + '` | ' + r.label + ' | ' + r.value +
+      ' | ' + (r.important ? 'yes' : '—') + ' |');
+  });
+  L.push('');
+  L.push('## Simplification suggestions');
+  L.push('');
+  var anySug = false;
+  analysis.ranked.forEach(function (r) {
+    var sug = suggestSimpler(r.selector);
+    if (sug && sug.afterValue < sug.beforeValue) {
+      anySug = true;
+      L.push('- `' + mdEscape(r.selector) + '` → `' + mdEscape(sug.suggestion) + '` (' +
+        sug.beforeValue + ' → ' + sug.afterValue + ')');
+      sug.notes.forEach(function (n2) { L.push('  - ' + n2.replace(/`/g, '')); });
+    }
+  });
+  if (!anySug) L.push('No simplifications suggested — the selectors are already lean.');
+  L.push('');
+  L.push('---');
+  L.push('*How specificity works: count ID selectors (a × 100), class/attribute/pseudo-class selectors (b × 10), and type/pseudo-element selectors (c × 1). `:where()` always scores 0; `:is()`, `:not()` and `:has()` take the highest score of their arguments.*');
+  return L.join('\n');
+}
+
+</script>
+
+<!-- ============ UI WIRING (uses lib functions; no document access in lib) ============ -->
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return escapeHtml(String(s == null ? '' : s)); }
+
+  var SAMPLE_CSS = [
+    '/* SpecScope demo stylesheet — hit "Analyze stylesheet" */',
+    '#header .nav ul li a { color: #e2e8f0; }',
+    '#header .nav ul li a { color: #7c6cff !important; }',
+    '.btn-primary { background: #7c6cff; border-radius: 8px; }',
+    'div.card .card-title { font-size: 20px; }',
+    ':where(#sidebar) .widget h3 { margin: 0; }',
+    ':is(.btn, #cta-button) { cursor: pointer; }',
+    'article.post:has(img.hero) { padding: 0; }',
+    'ul li a:hover { text-decoration: underline; }',
+    '* { box-sizing: border-box; }',
+    'input[type="email"]:focus { outline: 2px solid #22d3ee; }',
+    '#main #content .post .body p.intro { line-height: 1.6; }',
+    'html body .page .wrap .inner .box { padding: 1rem; }',
+    '@media (max-width: 768px) {',
+    '  #header .nav { display: none; }',
+    '  .btn-primary { width: 100%; }',
+    '}'
+  ].join('\n');
+
+  var lastAnalysis = null;
+
+  function severityStyle(sev) {
+    if (sev === 'high') return { c: '#f87171', bg: 'rgba(248,113,113,.08)', bd: 'rgba(248,113,113,.35)', icon: '!' };
+    if (sev === 'medium') return { c: '#fbbf24', bg: 'rgba(251,191,36,.08)', bd: 'rgba(251,191,36,.35)', icon: '~' };
+    return { c: '#34d399', bg: 'rgba(52,211,153,.08)', bd: 'rgba(52,211,153,.35)', icon: '✓' };
+  }
+
+  function valueColor(v) {
+    if (v >= 120) return '#f87171';
+    if (v >= 30) return '#fbbf24';
+    return '#22d3ee';
+  }
+
+  function breakdownHtml(selector) {
+    var parts = splitComplex(selector);
+    var html = '<div class="font-mono text-xs leading-relaxed">';
+    html += '<p class="text-slate-300 mb-2 font-disp text-sm">' + esc(breakdownSentence(selector)) + '</p>';
+    parts.forEach(function (p, pi) {
+      if (p.combinator) {
+        html += '<div class="my-1.5 text-slate-500">↳ <span class="italic">' + esc(combinatorLabel(p.combinator)) + '</span></div>';
+      }
+      html += '<div class="mb-1"><span class="text-specacc font-bold">' + esc(p.compound) + '</span></div>';
+      html += '<div class="flex flex-wrap gap-1.5 mb-2">';
+      tokenizeCompound(p.compound).forEach(function (t) {
+        html += '<span class="tok rounded-lg px-2 py-1" title="' + esc(t.label) + '">'
+          + '<span class="text-slate-100 font-bold">' + esc(t.raw) + '</span> '
+          + '<span class="text-slate-500">' + t.spec.a + ',' + t.spec.b + ',' + t.spec.c + '</span></span>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function rowHtml(r, idx, maxValue) {
+    var pct = maxValue > 0 ? Math.max(3, Math.round(r.value / maxValue * 100)) : 3;
+    var id = 'res-' + idx;
+    var html = '<div class="panel rounded-2xl p-4 sm:p-5">';
+    html += '<div class="flex items-start gap-3 sm:gap-4 flex-wrap">';
+    html += '<div class="font-disp font-bold text-slate-500 text-sm w-7 pt-1">#' + (idx + 1) + '</div>';
+    html += '<div class="flex-1 min-w-[200px]">';
+    html += '<code class="font-mono text-[13px] text-slate-100 break-all">' + esc(r.selector) + '</code>';
+    if (r.context) html += '<div class="text-[11px] text-slate-500 mt-1 font-mono">in ' + esc(r.context) + '</div>';
+    html += '<div class="scorebar mt-2" style="width:' + pct + '%"></div>';
+    html += '</div>';
+    html += '<div class="flex items-center gap-2 flex-wrap">';
+    html += '<span class="font-mono text-sm font-bold px-2.5 py-1 rounded-lg border border-specedge" style="color:' + valueColor(r.value) + '" title="Specificity (a, b, c)">' + esc(r.label) + '</span>';
+    if (r.important) html += '<span class="text-[11px] font-bold px-2 py-1 rounded-md" style="background:rgba(248,113,113,.14);color:#f87171;border:1px solid rgba(248,113,113,.4)">!important</span>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="flex flex-wrap gap-2 mt-3">';
+    html += '<button data-bd="' + id + '" class="bd-btn text-xs font-semibold px-3 py-1.5 rounded-lg border border-specedge text-slate-300 hover:border-specacc transition">Token breakdown</button>';
+    html += '<button data-sg="' + id + '" class="sg-btn text-xs font-semibold px-3 py-1.5 rounded-lg border border-specedge text-slate-300 hover:border-specpri transition">Suggest simpler</button>';
+    html += '</div>';
+    html += '<div id="' + id + '-bd" class="hidden mt-3 rounded-xl p-3 border border-specedge" style="background:#080d1d">' + breakdownHtml(r.selector) + '</div>';
+    var sug = suggestSimpler(r.selector);
+    if (sug && sug.afterValue < sug.beforeValue) {
+      var sg = '<div class="mt-3 rounded-xl p-3 border" style="background:#080d1d;border-color:rgba(124,108,255,.35)">';
+      sg += '<div class="text-xs text-slate-400 mb-1.5">One-click simpler selector <span class="font-mono" style="color:#34d399">' + sug.beforeValue + ' → ' + sug.afterValue + '</span> <span class="font-mono text-slate-500">' + esc(sug.beforeLabel) + ' → ' + esc(sug.afterLabel) + '</span></div>';
+      sg += '<div class="flex flex-wrap items-center gap-2">';
+      sg += '<code class="font-mono text-[13px] px-2.5 py-1.5 rounded-lg border border-specedge" style="color:#a5b4fc;background:#121830">' + esc(sug.suggestion) + '</code>';
+      sg += '<button data-copy="' + esc(sug.suggestion) + '" class="copy-sg text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style="background:linear-gradient(135deg,#7c6cff,#5a4fe0)">Copy</button>';
+      sg += '</div>';
+      sg += '<ul class="mt-2 text-xs text-slate-400 space-y-1">';
+      sug.notes.forEach(function (n) { sg += '<li>· ' + esc(n).replace(/`/g, '') + '</li>'; });
+      sg += '</ul></div>';
+      html += '<div id="' + id + '-sg" class="hidden">' + sg + '</div>';
+    } else {
+      html += '<div id="' + id + '-sg" class="hidden mt-3 text-xs text-slate-500 rounded-xl p-3 border border-specedge" style="background:#080d1d">Already lean — no simpler form found for this selector.</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function render(analysis) {
+    lastAnalysis = analysis;
+    var s = analysis.stats;
+    $('stat-selectors').textContent = s.total;
+    $('stat-important').textContent = s.important;
+    $('stat-ids').textContent = s.withIds;
+    $('stat-wars').textContent = s.wars;
+
+    var wp = $('warnings-panel');
+    wp.innerHTML = '';
+    analysis.warnings.forEach(function (w) {
+      var st = severityStyle(w.severity);
+      var card = document.createElement('div');
+      card.className = 'rounded-2xl p-4 sm:p-5 border';
+      card.style.background = st.bg;
+      card.style.borderColor = st.bd;
+      var h = '<div class="flex items-start gap-3">';
+      h += '<span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg font-bold text-sm" style="background:' + st.bg + ';color:' + st.c + ';border:1px solid ' + st.bd + '">' + st.icon + '</span>';
+      h += '<div class="min-w-0"><div class="font-semibold" style="color:' + st.c + '">' + esc(w.title) + '</div>';
+      h += '<p class="text-sm text-slate-400 mt-1 leading-relaxed">' + esc(w.detail) + '</p>';
+      if (w.selectors.length) {
+        h += '<div class="flex flex-wrap gap-1.5 mt-2">';
+        w.selectors.forEach(function (sel) {
+          h += '<code class="font-mono text-[11px] px-2 py-1 rounded-md border border-specedge text-slate-300" style="background:#0b1020">' + esc(sel) + '</code>';
+        });
+        h += '</div>';
+      }
+      h += '</div></div>';
+      card.innerHTML = h;
+      wp.appendChild(card);
+    });
+
+    var rl = $('results-list');
+    rl.innerHTML = '';
+    if (!analysis.ranked.length) {
+      rl.innerHTML = '<div class="panel rounded-2xl p-8 text-center text-sm text-slate-500">No selectors found. Check that the pasted text contains CSS rules like <span class="font-mono">.btn { … }</span>.</div>';
+      return;
+    }
+    var maxValue = analysis.ranked[0].value;
+    var frag = document.createElement('div');
+    frag.className = 'grid gap-3';
+    var html = '';
+    analysis.ranked.forEach(function (r, idx) { html += rowHtml(r, idx, maxValue); });
+    frag.innerHTML = html;
+    rl.appendChild(frag);
+
+    rl.querySelectorAll('.bd-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var el = $(b.getAttribute('data-bd') + '-bd');
+        el.classList.toggle('hidden');
+      });
+    });
+    rl.querySelectorAll('.sg-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var el = $(b.getAttribute('data-sg') + '-sg');
+        el.classList.toggle('hidden');
+      });
+    });
+    rl.querySelectorAll('.copy-sg').forEach(function (b) {
+      b.addEventListener('click', function () { copyText(b.getAttribute('data-copy'), b); });
+    });
+  }
+
+  function copyText(text, btn) {
+    function done(ok) {
+      if (!btn) return;
+      var old = btn.textContent;
+      btn.textContent = ok ? 'Copied!' : 'Copy failed';
+      setTimeout(function () { btn.textContent = old; }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(true); } catch (e) { done(false); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  function analyze() {
+    var css = $('css-input').value;
+    if (!css.trim()) {
+      $('results-list').innerHTML = '<div class="panel rounded-2xl p-8 text-center text-sm text-slate-500">Paste a stylesheet first — or hit <strong class="text-slate-300">Load sample CSS</strong> to try the demo.</div>';
+      return;
+    }
+    var analysis = analyzeStylesheet(css);
+    render(analysis);
+    try { localStorage.setItem('specscope-css-v1', css); } catch (e) {}
+  }
+
+  $('analyze-btn').addEventListener('click', analyze);
+  $('sample-btn').addEventListener('click', function () { $('css-input').value = SAMPLE_CSS; analyze(); });
+  $('clear-btn').addEventListener('click', function () {
+    $('css-input').value = '';
+    try { localStorage.removeItem('specscope-css-v1'); } catch (e) {}
+  });
+  $('copy-report-btn').addEventListener('click', function () {
+    if (!lastAnalysis) { analyze(); if (!lastAnalysis) return; }
+    copyText(buildMarkdownReport(lastAnalysis), $('copy-report-btn'));
+  });
+  $('download-report-btn').addEventListener('click', function () {
+    if (!lastAnalysis) { analyze(); if (!lastAnalysis) return; }
+    var blob = new Blob([buildMarkdownReport(lastAnalysis)], { type: 'text/markdown' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'specscope-specificity-report.md';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  });
+
+  try {
+    var saved = localStorage.getItem('specscope-css-v1');
+    if (saved) $('css-input').value = saved;
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
